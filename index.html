@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Pages</title>
+    <title>Pages Storage</title>
 </head>
 <body>
     <script>
@@ -12,7 +12,6 @@
         const keyIndex = isGitHub ? 1 : 0; 
 
         // DETECÇÃO AUTOMÁTICA DO SEU PRÓPRIO SERVIDOR WEBSOCKET
-        // Conecta em ws:// ou wss:// no mesmo domínio atual do seu projeto
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const socketUrl = protocol + window.location.host + '/ws'; 
         const socket = new WebSocket(socketUrl);
@@ -27,11 +26,9 @@
                     const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
                     const codigoFinal = htmlConteudo + brand;
 
-                    // Envia com a estrutura exata do seu projeto
                     const payload = { action: 'publish', name: nomePagina, data: codigoFinal };
                     socket.send(JSON.stringify(payload));
 
-                    // Redireciona imediatamente para a URL limpa de visualização
                     const origin = window.location.origin;
                     const repoPath = isGitHub ? `/${segments}` : '';
                     window.location.href = `${origin}${repoPath}/${nomePagina}/`;
@@ -42,7 +39,7 @@
                 }
             };
 
-            // ESCUTA AS RESPOSTAS DO SEU PROPRIO SERVIDOR
+            // ESCUTA AS RESPOSTAS DO SEU SERVIDOR WEBSOCKET
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
@@ -52,22 +49,25 @@
                             renderizar(data.data);
                         } else if (data.action === 'read-response' && data.data) {
                             renderizar(data.data);
+                        } else {
+                            // Erro caso o formato venha inválido ou vazio do seu socket
+                            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket ' + socketUrl + '</pre></center>';
                         }
                     }
                 } catch (e) {
-                    document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket wss://</pre></center>';
+                    document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket ' + socketUrl + '</pre></center>';
                 }
             };
 
             socket.onerror = () => {
-                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to conect to Websocket wss://</pre></center>';
+                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to conect to Websocket ' + socketUrl + '</pre></center>';
             };
 
             socket.onclose = () => {
                 document.body.innerHTML = '<pre>conection ended.</pre>';
             };
         } else {
-            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>Use PAGES!</pre></b></h1><br><br><pre>Create your first site now with pages!<pre></center>';
+            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>Use PAGES!</pre></b></h1><br><br><pre>Create your first site now with pages!</pre></center>';
         }
 
         function renderizar(html) {
