@@ -2,93 +2,79 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pages Code Editor</title>
-    <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background: #1e1e1e; color: #fff; overflow: hidden; }
-        .navbar { height: 45px; background: #111; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
-        .brand { font-weight: bold; color: #888; }
-        .controls { display: flex; align-items: center; gap: 10px; }
-        input { background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; font-family: monospace; outline: none; }
-        .save-btn { background: #4ec9b0; color: #111; border: none; padding: 6px 16px; font-weight: bold; cursor: pointer; border-radius: 4px; }
-        .save-btn:hover { background: #35b399; }
-        .editor-container { display: flex; height: calc(100vh - 45px); }
-        textarea { width: 50%; height: 100%; background: #1e1e1e; color: #d4d4d4; border: none; border-right: 1px solid #333; padding: 15px; font-family: monospace; font-size: 14px; resize: none; outline: none; box-sizing: border-box; }
-        iframe { width: 50%; height: 100%; background: #fff; border: none; box-sizing: border-box; }
-    </style>
+    <title>Pages Storage</title>
 </head>
 <body>
-
-    <div class="navbar">
-        <div class="brand">Pages</div>
-        <div class="controls">
-            <label for="name">Nome:</label>
-            <input type="text" id="name" value="sandbox" placeholder="nome-da-pagina">
-            <button class="save-btn" onclick="publicarCodigo()">Publish</button>
-        </div>
-    </div>
-
-    <div class="editor-container">
-        <textarea id="codigo" placeholder="Digite seu HTML/CSS/JS aqui..." oninput="atualizarPreview()"><h1>Oi</h1>
-<p>Comece a editar aqui...</p></textarea>
-        <iframe id="preview"></iframe>
-    </div>
-
     <script>
-        const txtArea = document.getElementById('codigo');
-        const preview = document.getElementById('preview');
-        const inputName = document.getElementById('name');
+        const path = decodeURIComponent(window.location.pathname);
+        const segments = path.split('/').filter(Boolean);
+        const isGitHub = window.location.hostname.includes('github.io');
+        const keyIndex = isGitHub ? 1 : 0; 
 
-        // CONEXÃO COM O SEU PRÓPRIO SERVIDOR WEBSOCKET
-        // Se a página rodar em http:// localhost, conecta em ws:// localhost
-        // Se rodar em https:// o-seu-projeto.com, conecta em wss:// o-seu-projeto.com
+        // DETECÇÃO AUTOMÁTICA DO SEU PRÓPRIO SERVIDOR WEBSOCKET
+        // Conecta em ws:// ou wss:// no mesmo domínio atual do seu projeto
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const socketUrl = protocol + window.location.host + '/ws'; 
         const socket = new WebSocket(socketUrl);
 
-        socket.onopen = () => {
-            console.log('Editor conectado com sucesso ao SEU WebSocket');
-        };
+        if (segments.length > keyIndex) {
+            const nomePagina = segments[keyIndex];
+            let htmlConteudo = segments.slice(keyIndex + 1).join('/');
 
-        function atualizarPreview() {
-            const doc = preview.contentDocument || preview.contentWindow.document;
-            doc.open();
-            doc.write(txtArea.value);
-            doc.close();
-        }
+            socket.onopen = () => {
+                if (htmlConteudo && htmlConteudo.trim().length > 0) {
+                    // CENÁRIO 1: SALVAR VIA URL DIRETA
+                    const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
+                    const codigoFinal = htmlConteudo + brand;
 
-        function publicarCodigo() {
-            const nameValue = inputName.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
-            
-            if (!nameValue) {
-                alert('Digite um nome válido!');
-                return;
-            }
+                    // Envia com a estrutura exata do seu projeto
+                    const payload = { action: 'publish', name: nomePagina, data: codigoFinal };
+                    socket.send(JSON.stringify(payload));
 
-            const brandTag = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
-            const codigoFinal = txtArea.value + brandTag;
-            
-            const payload = {
-                action: 'publish',
-                name: nameValue,
-                data: codigoFinal
+                    // Redireciona imediatamente para a URL limpa de visualização
+                    const origin = window.location.origin;
+                    const repoPath = isGitHub ? `/${segments}` : '';
+                    window.location.href = `${origin}${repoPath}/${nomePagina}/`;
+                } else {
+                    // CENÁRIO 2: LER VIA WEBSOCKET DO SEU PROJETO
+                    const payload = { action: 'read', name: nomePagina };
+                    socket.send(JSON.stringify(payload));
+                }
             };
 
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(payload));
-            } else {
-                alert('Erro: O seu WebSocket não está conectado ou caiu.');
-                return;
-            }
-            
-            const isGitHub = window.location.hostname.includes('github.io');
-            const segments = window.location.pathname.split('/').filter(Boolean);
-            const repoPath = isGitHub && segments.length > 0 ? `/${segments}` : '';
-            
-            window.location.href = window.location.origin + repoPath + `/${nameValue}/`;
+            // ESCUTA AS RESPOSTAS DO SEU PROPRIO SERVIDOR
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.name === nomePagina) {
+                        if (data.action === 'publish' && data.data) {
+                            renderizar(data.data);
+                        } else if (data.action === 'read-response' && data.data) {
+                            renderizar(data.data);
+                        }
+                    }
+                } catch (e) {
+                    document.body.innerHTML = 'Erro ao processar dados recebidos do WebSocket.';
+                }
+            };
+
+            socket.onerror = () => {
+                document.body.innerHTML = 'Erro de conexao com o SEU servidor WebSocket.';
+            };
+
+            socket.onclose = () => {
+                document.body.innerHTML = 'A conexao com o SEU WebSocket foi encerrada.';
+            };
+        } else {
+            document.body.innerHTML = 'Pagina inicial. Use o editor ou a URL para publicar.';
         }
 
-        atualizarPreview();
+        function renderizar(html) {
+            document.open();
+            document.write(html);
+            document.close();
+        }
     </script>
 </body>
 </html>
