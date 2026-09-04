@@ -2,78 +2,48 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pure Router Storage</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #121212; color: #fff; }
-        #status { padding: 12px; background-color: #222; margin-bottom: 20px; border-radius: 6px; border: 1px solid #333; font-weight: bold;}
-        code { background: #333; padding: 2px 6px; border-radius: 4px; color: #ff79c6;}
-    </style>
+    <title>Pages Storage</title>
 </head>
 <body>
-
-    <div id="status">Processando rota no GitHub Pages...</div>
-
-    <div id="app-content">
-        <h1>🚀 Roteador Nativo no GitHub Pages (Sem Servidor Externo)</h1>
-        <p>Insira valores na URL para testar:</p>
-        <ul>
-            <li><code>seu-usuario.github.io/repositorio/seu-id/&lt;h1&gt;oi&lt;/h1&gt;</code> (Salvar)</li>
-            <li><code>seu-usuario.github.io/repositorio/seu-id/</code> (Ler)</li>
-        </ul>
-    </div>
-
     <script>
-        const statusDiv = document.getElementById('status');
-        const contentDiv = document.getElementById('app-content');
-
-        // Captura o caminho da URL limpo
         const path = decodeURIComponent(window.location.pathname);
         const segments = path.split('/').filter(Boolean);
+        const isGitHub = window.location.hostname.includes('github.io');
+        const keyIndex = isGitHub ? 1 : 0; 
 
-        function processRouting() {
-            if (segments.length === 0) {
-                statusDiv.textContent = '🟢 Página inicial pronta.';
-                return;
-            }
-
-            // Descobre qual segmento é a chave (ignora o nome do repositório se estiver no github.io)
-            let isGitHub = window.location.hostname.includes('github.io');
-            let keyIndex = isGitHub ? 1 : 0; 
-            
-            if (segments.length <= keyIndex) return;
-
+        if (segments.length > keyIndex) {
             const chave = segments[keyIndex];
-            
-            // Pega todo o resto da URL após a chave como o HTML de conteúdo
-            const htmlConteudo = segments.slice(keyIndex + 1).join('/');
+            // Captura o HTML digitado após a chave
+            let htmlConteudo = segments.slice(keyIndex + 1).join('/');
 
             if (htmlConteudo && htmlConteudo.trim().length > 0) {
-                // CENÁRIO 1: Salvar o HTML
+                // CENÁRIO 1: SALVAR
+                // Injeta a marca d'água no final do HTML antes de salvar
+                const brand = '<hr><p style="font-family:sans-serif;font-size:12px;color:#888;text-align:center;">Created with Pages</p>';
+                htmlConteudo = htmlConteudo + brand;
+
                 localStorage.setItem(`gh_storage_${chave}`, htmlConteudo);
-                
-                statusDiv.textContent = `💾 Salvo localmente na chave: "${chave}"`;
-                contentDiv.innerHTML = htmlConteudo;
+
+                // Redireciona imediatamente para a URL de visualização (ex: /repositorio/algo/)
+                const origin = window.location.origin;
+                const repoPath = isGitHub ? `/${segments[0]}` : '';
+                window.location.href = `${origin}${repoPath}/${chave}/`;
             } else {
-                // CENÁRIO 2: Ler o HTML salvo
+                // CENÁRIO 2: LER E SUBSTITUIR
                 const dadosSalvos = localStorage.getItem(`gh_storage_${chave}`);
 
                 if (dadosSalvos) {
-                    statusDiv.textContent = `📖 Conteúdo carregado para a chave: "${chave}"`;
-                    
-                    // Substitui a página inteira pelo HTML armazenado
+                    // Substitui absolutamente todo o HTML da página atual pelo gravado
                     document.open();
                     document.write(dadosSalvos);
                     document.close();
                 } else {
-                    statusDiv.textContent = `❌ Nenhum dado encontrado para a chave: "${chave}"`;
-                    contentDiv.innerHTML = `<h1>404</h1><p>Nenhum HTML foi salvo na chave <b>${chave}</b> ainda neste navegador.</p>`;
+                    document.body.innerHTML = 'Nenhum conteudo salvo para esta chave.';
                 }
             }
+        } else {
+            document.body.innerHTML = 'Pagina inicial. Use a URL para gravar: /chave/&lt;h1&gt;texto&lt;/h1&gt;';
         }
-
-        // Executa a lógica assim que a página carrega
-        processRouting();
     </script>
 </body>
 </html>
