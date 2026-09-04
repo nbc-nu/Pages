@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pages - Editor</title>
+    <title>Pages Code Editor</title>
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; background: #1e1e1e; color: #fff; overflow: hidden; }
         .navbar { height: 45px; background: #111; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
@@ -22,31 +22,32 @@
     <div class="navbar">
         <div class="brand">Pages</div>
         <div class="controls">
-            <label for="chave">Name:</label>
-            <input type="text" id="chave" value="my-pages" placeholder="nome-da-pagina">
-            <button class="save-btn" onclick="salvarCodigo()">Salvar</button>
+            <label for="name">Nome:</label>
+            <input type="text" id="name" value="sandbox" placeholder="nome-da-pagina">
+            <button class="save-btn" onclick="publicarCodigo()">Publish</button>
         </div>
     </div>
 
     <div class="editor-container">
-        <textarea id="codigo" placeholder="HTML here..." oninput="atualizarPreview()">
-    <DOCTYPE html>
-        <center>
-            <h1>My Pages</h1>
-            <hr>
-            <pre>This is my website hosted in pages!</pre>
-        </center>
-    </html>
-        </textarea>
+        <textarea id="codigo" placeholder="Digite seu HTML/CSS/JS aqui..." oninput="atualizarPreview()"><h1>Oi</h1>
+<p>Comece a editar aqui...</p></textarea>
         <iframe id="preview"></iframe>
     </div>
 
     <script>
         const txtArea = document.getElementById('codigo');
         const preview = document.getElementById('preview');
-        const inputChave = document.getElementById('chave');
+        const inputName = document.getElementById('name');
 
-        // Atualiza a metade direita com o resultado do código digitado
+        // CONEXÃO COM O SEU PRÓPRIO SERVIDOR WEBSOCKET
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const socketUrl = protocol + window.location.host + '/ws'; 
+        const socket = new WebSocket(socketUrl);
+
+        socket.onopen = () => {
+            console.log('Editor conectado com sucesso ao seu servidor WebSocket');
+        };
+
         function atualizarPreview() {
             const doc = preview.contentDocument || preview.contentWindow.document;
             doc.open();
@@ -54,32 +55,41 @@
             doc.close();
         }
 
-        // Salva e manda para a visualização na outra página
-        function salvarCodigo() {
-            const chave = inputChave.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+        function publicarCodigo() {
+            const nameValue = inputName.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
             
-            if (!chave) {
-                alert('Type an name before publishing!');
+            if (!nameValue) {
+                alert('Digite um nome válido!');
                 return;
             }
 
-            // Injeta a marca d'água no rodapé absoluto antes de salvar
+            // Injeta a marca fixa no rodapé absoluto antes de transmitir
             const brandTag = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
             const codigoFinal = txtArea.value + brandTag;
             
-            // Salva usando exatamente o mesmo prefixo que o seu index.html lê
-            localStorage.setItem(`gh_storage_${chave}`, codigoFinal);
+            // Estrutura enviada puramente pelo WebSocket do seu projeto
+            const payload = {
+                action: 'publish',
+                name: nameValue,
+                data: codigoFinal
+            };
+
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(payload));
+            } else {
+                alert('Erro: O seu servidor WebSocket não está conectado ou caiu.');
+                return;
+            }
             
-            // Detecta a rota correta do GitHub Pages para te redirecionar
+            // Rota dinâmica ajustada para o GitHub Pages
             const isGitHub = window.location.hostname.includes('github.io');
             const segments = window.location.pathname.split('/').filter(Boolean);
             const repoPath = isGitHub && segments.length > 0 ? `/${segments[0]}` : '';
             
-            // Redireciona para o link final da sua página (/chave/)
-            window.location.href = window.location.origin + repoPath + `/${chave}/`;
+            // Redireciona para a visualização dinâmica que lerá do seu WebSocket
+            window.location.href = window.location.origin + repoPath + `/${nameValue}/`;
         }
 
-        // Inicializa o visual do preview na primeira carga
         atualizarPreview();
     </script>
 </body>
