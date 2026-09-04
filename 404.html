@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Pages</title>
+    <title>Pages Storage</title>
 </head>
 <body>
     <script>
@@ -11,34 +11,77 @@
         const isGitHub = window.location.hostname.includes('github.io');
         const keyIndex = isGitHub ? 1 : 0; 
 
+        // Conexão WebSocket pura
+        const socketUrl = 'wss://echo.websocket.org'; 
+        const socket = new WebSocket(socketUrl);
+
         if (segments.length > keyIndex) {
-            const chave = segments[keyIndex];
+            const nomePagina = segments[keyIndex];
             let htmlConteudo = segments.slice(keyIndex + 1).join('/');
 
-            if (htmlConteudo && htmlConteudo.trim().length > 0) {
+            socket.onopen = () => {
+                if (htmlConteudo && htmlConteudo.trim().length > 0) {
+                    // CENÁRIO 1: SALVAR VIA URL DIRETA (Se o usuário digitar na barra)
+                    const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
+                    const codigoFinal = htmlConteudo + brand;
 
-                const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
-                htmlConteudo = htmlConteudo + brand;
+                    // Envia no formato que você pediu: action='publish', name e data
+                    const payload = { action: 'publish', name: nomePagina, data: codigoFinal };
+                    socket.send(JSON.stringify(payload));
 
-                localStorage.setItem(`gh_storage_${chave}`, htmlConteudo);
-
-                const origin = window.location.origin;
-                const repoPath = isGitHub ? `/${segments[0]}` : '';
-                window.location.href = `${origin}${repoPath}/${chave}/`;
-            } else {
-
-                const dadosSalvos = localStorage.getItem(`gh_storage_${chave}`);
-
-                if (dadosSalvos) {
-                    document.open();
-                    document.write(dadosSalvos);
-                    document.close();
+                    // Redireciona imediatamente para a URL limpa de visualização
+                    const origin = window.location.origin;
+                    const repoPath = isGitHub ? `/${segments}` : '';
+                    window.location.href = `${origin}${repoPath}/${nomePagina}/`;
                 } else {
-                    document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>404</pre></b></h1><br><br><pre>Page not found</pre></center>';
+                    // CENÁRIO 2: LER VIA WEBSOCKET
+                    // Envia um pedido de leitura usando o formato novo baseado em 'name'
+                    const payload = { action: 'read', name: nomePagina };
+                    socket.send(JSON.stringify(payload));
                 }
-            }
+            };
+
+            // ESCUTA AS RESPOSTAS VINDAS EXCLUSIVAMENTE DO WEBSOCKET
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // Se o WebSocket retornar os dados com o mesmo nome da nossa rota
+                    if (data.name === nomePagina) {
+                        if (data.action === 'publish' && data.data) {
+                            renderizar(data.data);
+                        } else if (data.action === 'read-response' && data.data) {
+                            renderizar(data.data);
+                        }
+                    }
+                } catch (e) {
+                    // Trata servidores do tipo 'echo' (que apenas devolvem o que o editor enviou)
+                    try {
+                        const echoData = JSON.parse(event.data);
+                        if (echoData.name === nomePagina && echoData.data) {
+                            renderizar(echoData.data);
+                        }
+                    } catch(err) {
+                        document.body.innerHTML = 'Erro ao processar dados vindos do WebSocket.';
+                    }
+                }
+            };
+
+            socket.onerror = () => {
+                document.body.innerHTML = 'Erro de conexao com o servidor WebSocket.';
+            };
+
+            socket.onclose = () => {
+                document.body.innerHTML = 'A conexao com o WebSocket foi encerrada.';
+            };
         } else {
-            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>404</pre></b></h1><br><br><pre>Page not found</pre></center>';
+            document.body.innerHTML = 'Pagina inicial. Use o editor ou a URL para publicar.';
+        }
+
+        function renderizar(html) {
+            document.open();
+            document.write(html);
+            document.close();
         }
     </script>
 </body>
