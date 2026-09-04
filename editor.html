@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pages Code Editor</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #1e1e1e; color: #fff; overflow: hidden; }
+        .navbar { height: 45px; background: #111; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #333; }
+        .brand { font-weight: bold; color: #888; }
+        .controls { display: flex; align-items: center; gap: 10px; }
+        input { background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; font-family: monospace; outline: none; }
+        .save-btn { background: #4ec9b0; color: #111; border: none; padding: 6px 16px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .save-btn:hover { background: #35b399; }
+        .editor-container { display: flex; height: calc(100vh - 45px); }
+        textarea { width: 50%; height: 100%; background: #1e1e1e; color: #d4d4d4; border: none; border-right: 1px solid #333; padding: 15px; font-family: monospace; font-size: 14px; resize: none; outline: none; box-sizing: border-box; }
+        iframe { width: 50%; height: 100%; background: #fff; border: none; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="brand">Pages</div>
+        <div class="controls">
+            <label for="chave">Chave:</label>
+            <input type="text" id="chave" value="sandbox" placeholder="nome-da-pagina">
+            <button class="save-btn" onclick="salvarCodigo()">Salvar</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <textarea id="codigo" placeholder="Digite seu HTML/CSS/JS aqui..." oninput="atualizarPreview()"><h1>Oi</h1>
+<p>Comece a editar aqui...</p></textarea>
+        <iframe id="preview"></iframe>
+    </div>
+
+    <script>
+        const txtArea = document.getElementById('codigo');
+        const preview = document.getElementById('preview');
+        const inputChave = document.getElementById('chave');
+
+        // Atualiza a metade direita com o resultado do código digitado
+        function atualizarPreview() {
+            const doc = preview.contentDocument || preview.contentWindow.document;
+            doc.open();
+            doc.write(txtArea.value);
+            doc.close();
+        }
+
+        // Salva e manda para a visualização na outra página
+        function salvarCodigo() {
+            const chave = inputChave.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+            
+            if (!chave) {
+                alert('Digite uma chave válida!');
+                return;
+            }
+
+            // Injeta a marca d'água no rodapé absoluto antes de salvar
+            const brandTag = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
+            const codigoFinal = txtArea.value + brandTag;
+            
+            // Salva usando exatamente o mesmo prefixo que o seu index.html lê
+            localStorage.setItem(`gh_storage_${chave}`, codigoFinal);
+            
+            // Detecta a rota correta do GitHub Pages para te redirecionar
+            const isGitHub = window.location.hostname.includes('github.io');
+            const segments = window.location.pathname.split('/').filter(Boolean);
+            const repoPath = isGitHub && segments.length > 0 ? `/${segments[0]}` : '';
+            
+            // Redireciona para o link final da sua página (/chave/)
+            window.location.href = window.location.origin + repoPath + `/${chave}/`;
+        }
+
+        // Inicializa o visual do preview na primeira carga
+        atualizarPreview();
+    </script>
+</body>
+</html>
