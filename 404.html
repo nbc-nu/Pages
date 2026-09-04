@@ -55,19 +55,19 @@
                         }
                     }
                 } catch (e) {
-                    document.body.innerHTML = 'Erro ao processar dados recebidos do WebSocket.';
+                    document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket wss://</pre></center>';
                 }
             };
 
             socket.onerror = () => {
-                document.body.innerHTML = 'Erro de conexao com o SEU servidor WebSocket.';
+                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to conect to Websocket wss://</pre></center>';
             };
 
             socket.onclose = () => {
-                document.body.innerHTML = 'A conexao com o SEU WebSocket foi encerrada.';
+                document.body.innerHTML = '<pre>conection ended.</pre>';
             };
         } else {
-            document.body.innerHTML = 'Pagina inicial. Use o editor ou a URL para publicar.';
+            document.body.innerHTML = '';
         }
 
         function renderizar(html) {
