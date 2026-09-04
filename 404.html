@@ -11,9 +11,9 @@
         const isGitHub = window.location.hostname.includes('github.io');
         const keyIndex = isGitHub ? 1 : 0; 
 
-        // 🚨 COLOQUE AQUI O ENDEREÇO REAL DO SEU SERVIDOR WEBSOCKET 🚨
-        // Exemplo: 'ws://45.123.4.5:8080' ou 'wss://://seu-backend-do-projeto.com'
-        const socketUrl = 'wss://://seu-servidor-websocket-do-projeto.com'; 
+        // DETECÇÃO AUTOMÁTICA DO SEU PRÓPRIO SERVIDOR WEBSOCKET
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const socketUrl = protocol + window.location.host + '/ws'; 
         const socket = new WebSocket(socketUrl);
 
         if (segments.length > keyIndex) {
@@ -26,22 +26,20 @@
                     const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
                     const codigoFinal = htmlConteudo + brand;
 
-                    // Formato exato do seu projeto
                     const payload = { action: 'publish', name: nomePagina, data: codigoFinal };
                     socket.send(JSON.stringify(payload));
 
-                    // Redireciona na hora para a URL limpa de visualização no GitHub
                     const origin = window.location.origin;
                     const repoPath = isGitHub ? `/${segments}` : '';
                     window.location.href = `${origin}${repoPath}/${nomePagina}/`;
                 } else {
-                    // CENÁRIO 2: LER VIA SEU WEBSOCKET
+                    // CENÁRIO 2: LER VIA WEBSOCKET DO SEU PROJETO
                     const payload = { action: 'read', name: nomePagina };
                     socket.send(JSON.stringify(payload));
                 }
             };
 
-            // ESCUTA O SEU SERVIDOR WEBSOCKET
+            // ESCUTA AS RESPOSTAS DO SEU SERVIDOR WEBSOCKET
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
@@ -51,22 +49,25 @@
                             renderizar(data.data);
                         } else if (data.action === 'read-response' && data.data) {
                             renderizar(data.data);
+                        } else {
+                            // Erro caso o formato venha inválido ou vazio do seu socket
+                            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket ' + socketUrl + '</pre></center>';
                         }
                     }
                 } catch (e) {
-                    document.body.innerHTML = 'Erro ao processar dados recebidos do seu WebSocket.';
+                    document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to read data from Websocket ' + socketUrl + '</pre></center>';
                 }
             };
 
             socket.onerror = () => {
-                document.body.innerHTML = 'Erro de conexao com o SEU servidor WebSocket.';
+                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to conect to Websocket ' + socketUrl + '</pre></center>';
             };
 
             socket.onclose = () => {
-                document.body.innerHTML = 'A conexao com o SEU WebSocket foi encerrada.';
+                document.body.innerHTML = '<pre>conection ended.</pre>';
             };
         } else {
-            document.body.innerHTML = 'Pagina inicial. Use o editor ou a URL para publicar.';
+            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>Use PAGES!</pre></b></h1><br><br><pre>Create your first site now with pages!</pre></center>';
         }
 
         function renderizar(html) {
