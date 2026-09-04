@@ -16,19 +16,17 @@
             let htmlConteudo = segments.slice(keyIndex + 1).join('/');
 
             if (htmlConteudo && htmlConteudo.trim().length > 0) {
-                // CENÁRIO 1: SALVAR
-                // Injeta a marca d'água fixa no rodapé absoluto da tela
+
                 const brand = '<div style="position:fixed;bottom:12px;left:0;width:100%;font-family:sans-serif;font-size:12px;color:#888;text-align:center;pointer-events:none;z-index:9999;">Created with Pages</div>';
                 htmlConteudo = htmlConteudo + brand;
 
                 localStorage.setItem(`gh_storage_${chave}`, htmlConteudo);
 
-                // Redireciona imediatamente para a URL de visualização
                 const origin = window.location.origin;
                 const repoPath = isGitHub ? `/${segments[0]}` : '';
                 window.location.href = `${origin}${repoPath}/${chave}/`;
             } else {
-                // CENÁRIO 2: LER E SUBSTITUIR
+
                 const dadosSalvos = localStorage.getItem(`gh_storage_${chave}`);
 
                 if (dadosSalvos) {
@@ -36,11 +34,11 @@
                     document.write(dadosSalvos);
                     document.close();
                 } else {
-                    document.body.innerHTML = 'Nenhum conteudo salvo para esta chave.';
+                    document.body.innerHTML = '<center><h1><b><pre>404</pre></b></h1><br><br><pre>Page not found</pre></center>';
                 }
             }
         } else {
-            document.body.innerHTML = 'Pagina inicial. Use a URL para gravar: /chave/&lt;h1&gt;texto&lt;/h1&gt;';
+            document.body.innerHTML = '<center><h1><b><pre>404</pre></b></h1><br><br><pre>Page not found</pre></center>';
         }
     </script>
 </body>
