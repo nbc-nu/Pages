@@ -29,8 +29,13 @@
     </div>
 
     <div class="editor-container">
-        <textarea id="codigo" placeholder="Digite seu HTML/CSS/JS aqui..." oninput="atualizarPreview()"><h1>Oi</h1>
-<p>Comece a editar aqui...</p></textarea>
+        <textarea id="codigo" placeholder="HTML here..." oninput="atualizarPreview()"><DOCTYPE html>
+        <center>
+            <h1>My Pages</h1>
+        <hr>
+        <pre>This is my website hosted in pages!</pre>
+        </center>
+        </html></textarea>
         <iframe id="preview"></iframe>
     </div>
 
@@ -52,7 +57,7 @@
             const chave = inputChave.value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
             
             if (!chave) {
-                alert('Digite uma chave válida!');
+                alert('Type an name before publishing!');
                 return;
             }
 
