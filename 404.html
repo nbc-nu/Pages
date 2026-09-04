@@ -68,14 +68,14 @@
             };
 
             socket.onerror = () => {
-                document.body.innerHTML = 'Erro de conexao com o servidor WebSocket.';
+                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>505</pre></b></h1><br><br><pre>Error: Unable to conect to Websocket wss://</pre></center>';
             };
 
             socket.onclose = () => {
-                document.body.innerHTML = 'A conexao com o WebSocket foi encerrada.';
+                document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>Conection</pre></b></h1><br><br><pre>Websocket conection ended</pre></center>';
             };
         } else {
-            document.body.innerHTML = 'Pagina inicial. Use o editor ou a URL para publicar.';
+            document.body.innerHTML = '<h1><pre>Pages</pre></h1><hr><center><h1><b><pre>Use PAGES!</pre></b></h1><br><br><pre>Create your first site now with pages!<pre></center>';
         }
 
         function renderizar(html) {
